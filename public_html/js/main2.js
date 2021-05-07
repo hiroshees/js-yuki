@@ -1,11 +1,11 @@
-var mainScene = new Phaser.Scene("mainScene");
+var mainScene2 = new Phaser.Scene("mainScene2");
 
-mainScene.create = function () {
+mainScene2.create = function (data) {
     // 初期設定
-    this.config();
+    this.config(data);
     
     // 背景色の設定
-    this.cameras.main.setBackgroundColor('#ffe4a0');
+    this.cameras.main.setBackgroundColor('#a89e8f');
     
     // マップ表示
     this.createMap();
@@ -29,12 +29,11 @@ mainScene.create = function () {
     this.input.keyboard.on('keydown-SPACE', function(event) {
         this.shoot();
     }, this);
-    
-    
+
     this.createGoalZone();
 };
 
-mainScene.update = function() {
+mainScene2.update = function() {
     if(this.isGameOver) {
         return false;
     }
@@ -61,7 +60,7 @@ mainScene.update = function() {
 
 
 // 初期設定
-mainScene.config = function() {
+mainScene2.config = function(data) {
     // プレイヤーの動く速度
     this.runSpeed = 300;
     // プレイヤーのジャンプパワー
@@ -77,12 +76,15 @@ mainScene.config = function() {
     // カーソルを取得する
     this.cursors = this.input.keyboard.createCursorKeys();
     this.hp = 3;
+    
+    this.score = data.score;
+    this.hp = data.hp;
 };
 
-mainScene.createMap = function() {
+mainScene2.createMap = function() {
     // マップ表示
     // JSON形式のマップデータの読み込み Tilemapオブジェクトの作成
-    this.map = this.make.tilemap({key: 'map01'});
+    this.map = this.make.tilemap({key: 'map02'});
 
     // タイル画像をマップデータに反映する Tilesetオブジェクトの作成
     var groundTiles = this.map.addTilesetImage('tiles');
@@ -103,7 +105,7 @@ mainScene.createMap = function() {
     this.cameras.main.centerOn(50, 850);
 };
 
-mainScene.createPlayer = function() {
+mainScene2.createPlayer = function() {
     // プレイヤー作成
     this.player = this.physics.add.sprite(50, 500, 'player');
     // 衝突サイズの調整
@@ -141,7 +143,7 @@ mainScene.createPlayer = function() {
 };
 
 
-mainScene.createUI = function() {
+mainScene2.createUI = function() {
     // UI作成
     var scoreText = 'スコア：' + this.score;
     // 画面右上に赤色でテキスト表示
@@ -164,7 +166,7 @@ mainScene.createUI = function() {
     this.playerHpText.setScrollFactor(0);
 };
 
-mainScene.createStarGroup = function() {
+mainScene2.createStarGroup = function() {
     // スターグループ作成
     this.starGroup = this.physics.add.group();
     // スターグループと地面の衝突
@@ -182,7 +184,7 @@ mainScene.createStarGroup = function() {
     this.physics.add.overlap(this.player, this.starGroup, this.hitStar, null, this);
 };
 
-mainScene.createStar = function() {
+mainScene2.createStar = function() {
     // スターの作成
     var starPositionX = Phaser.Math.RND.between(200, 1200);
     var starPositionY = Phaser.Math.RND.between(70, 840);
@@ -196,7 +198,7 @@ mainScene.createStar = function() {
     star.setBounce(0.5);
 };
 
-mainScene.hitStar = function(player, star) {
+mainScene2.hitStar = function(player, star) {
     // プレイヤーとスターの衝突
     star.destroy();
     // スコアアップ
@@ -205,7 +207,7 @@ mainScene.hitStar = function(player, star) {
     this.text.setText(scoreText);
 };
 
-mainScene.createEnemyGroup = function() {
+mainScene2.createEnemyGroup = function() {
     // 敵グループ作成
     this.enemyGroup = this.physics.add.group();
     // 最初の敵の作成
@@ -223,7 +225,7 @@ mainScene.createEnemyGroup = function() {
     });
 };
 
-mainScene.createEnemy = function() {
+mainScene2.createEnemy = function() {
     // 敵の作成
     // 作成する敵の種類をランダムにする
     var enemyType = Phaser.Math.RND.pick(this.enemyData);
@@ -238,7 +240,7 @@ mainScene.createEnemy = function() {
     enemy.setVelocityX(speed);
 };
 
-mainScene.hitEnemy = function(player, enemy) {
+mainScene2.hitEnemy = function(player, enemy) {
     // プレイヤーと敵の衝突
     // ゲームオーバーにして、updateの動作停止
     this.isGameOver = true;
@@ -274,7 +276,7 @@ mainScene.hitEnemy = function(player, enemy) {
     }
 };
 
-mainScene.gameOver = function() {
+mainScene2.gameOver = function() {
     // ゲームオーバー処理
     // 現在のカメラの中心座標を取得
     var cameraPositionX = this.cameras.main.midPoint.x;
@@ -288,7 +290,7 @@ mainScene.gameOver = function() {
     }, this);
 };
 
-mainScene.gameRestart = function() {
+mainScene2.gameRestart = function() {
     this.isGameOver = false;
     this.player.setPosition(50, 100);
     this.physics.resume();
@@ -297,7 +299,7 @@ mainScene.gameRestart = function() {
     this.player.setFrame(7);
 };
 
-mainScene.createBallGroup = function() {
+mainScene2.createBallGroup = function() {
     // ボールグループ作成
     this.ballGroup = this.physics.add.group();
     // ボールグループと地面の衝突
@@ -306,7 +308,7 @@ mainScene.createBallGroup = function() {
     this.physics.add.overlap(this.ballGroup, this.enemyGroup, this.hitBall, null, this);
 };
 
-mainScene.shoot = function() {
+mainScene2.shoot = function() {
     // プレイヤーの位置からボール発射
     var posX = this.player.x;
     var posY = this.player.y;
@@ -322,11 +324,11 @@ mainScene.shoot = function() {
         ball.setVelocityX(-600);
     }
 };
-mainScene.hitBallAndGround = function(ball, ground) {
+mainScene2.hitBallAndGround = function(ball, ground) {
     ball.destroy();
 };
 
-mainScene.hitBall = function(ball, enemy) {
+mainScene2.hitBall = function(ball, enemy) {
     // ボールと敵の衝突
     // 敵の削除
     enemy.destroy();
@@ -338,14 +340,14 @@ mainScene.hitBall = function(ball, enemy) {
     this.text.setText(scoreText);
 };
 
-mainScene.createGoalZone = function() {
-    this.goalZone = this.add.zone(70 * 50, 70 * 5, 70, 70 * 10);
+mainScene2.createGoalZone = function() {
+    this.goalZone = this.add.zone(70 * 50, 70 * 10, 70, 70 * 2);
     this.physics.add.existing(this.goalZone);
     this.goalZone.body.setAllowGravity(false);
     this.physics.add.overlap(this.player, this.goalZone, this.reachGoal, null, this);
 };
 
-mainScene.reachGoal = function() {
+mainScene2.reachGoal = function() {
     this.isGameOver = true;
     this.physics.pause();
     this.player.anims.stop();
@@ -355,7 +357,7 @@ mainScene.reachGoal = function() {
     // フェードアウト完了後に実行する
     this.cameras.main.on('camerafadeoutcomplete', function(camera, effect) {
         // スタートシーンを起動します
-        this.scene.start("mainScene2",{
+        this.scene.start("mainScene3",{
             hp : this.hp,
             score : this.score,
         });

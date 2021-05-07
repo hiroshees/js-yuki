@@ -1,11 +1,11 @@
-var mainScene = new Phaser.Scene("mainScene");
+var mainScene3 = new Phaser.Scene("mainScene3");
 
-mainScene.create = function () {
+mainScene3.create = function (data) {
     // 初期設定
-    this.config();
+    this.config(data);
     
     // 背景色の設定
-    this.cameras.main.setBackgroundColor('#ffe4a0');
+    this.cameras.main.setBackgroundColor('#b428e2');
     
     // マップ表示
     this.createMap();
@@ -16,12 +16,6 @@ mainScene.create = function () {
     // UI作成
     this.createUI();
     
-    // スター作成
-    this.createStarGroup();
-    
-    // 敵作成
-    this.createEnemyGroup();
-    
     // ボール作成
     this.createBallGroup();
 
@@ -30,11 +24,15 @@ mainScene.create = function () {
         this.shoot();
     }, this);
     
+    this.createBossEnemy();
+    
+    this.createBoneGroup();
     
     this.createGoalZone();
+    this.createBoneGroup2();
 };
 
-mainScene.update = function() {
+mainScene3.update = function() {
     if(this.isGameOver) {
         return false;
     }
@@ -57,11 +55,20 @@ mainScene.update = function() {
     {
         this.player.setVelocityY(-this.jumpPower);
     }
+    
+    // ボスの左右の動き
+    if(this.bossEnemy.x > this.groundLayer.width - this.bossEnemy.displayWidth / 2) {
+        this.bossEnemy.dx *= -1;
+    }
+    if(this.bossEnemy.x < 450) {
+        this.bossEnemy.dx *= -1;
+    }
+    this.bossEnemy.x += this.bossEnemy.dx;
 };
 
 
 // 初期設定
-mainScene.config = function() {
+mainScene3.config = function(data) {
     // プレイヤーの動く速度
     this.runSpeed = 300;
     // プレイヤーのジャンプパワー
@@ -77,12 +84,15 @@ mainScene.config = function() {
     // カーソルを取得する
     this.cursors = this.input.keyboard.createCursorKeys();
     this.hp = 3;
+    
+    this.score = data.score != null ? data.score : 0;
+    this.hp = data.hp != null ? data.hp : 3;
 };
 
-mainScene.createMap = function() {
+mainScene3.createMap = function() {
     // マップ表示
     // JSON形式のマップデータの読み込み Tilemapオブジェクトの作成
-    this.map = this.make.tilemap({key: 'map01'});
+    this.map = this.make.tilemap({key: 'map03'});
 
     // タイル画像をマップデータに反映する Tilesetオブジェクトの作成
     var groundTiles = this.map.addTilesetImage('tiles');
@@ -103,9 +113,9 @@ mainScene.createMap = function() {
     this.cameras.main.centerOn(50, 850);
 };
 
-mainScene.createPlayer = function() {
+mainScene3.createPlayer = function() {
     // プレイヤー作成
-    this.player = this.physics.add.sprite(50, 500, 'player');
+    this.player = this.physics.add.sprite(50, 50, 'player');
     // 衝突サイズの調整
     // 表示サイズを変更する前に、物理エンジンでの判定サイズの変更
     this.player.body.setSize(20,25);
@@ -141,7 +151,7 @@ mainScene.createPlayer = function() {
 };
 
 
-mainScene.createUI = function() {
+mainScene3.createUI = function() {
     // UI作成
     var scoreText = 'スコア：' + this.score;
     // 画面右上に赤色でテキスト表示
@@ -164,117 +174,76 @@ mainScene.createUI = function() {
     this.playerHpText.setScrollFactor(0);
 };
 
-mainScene.createStarGroup = function() {
-    // スターグループ作成
-    this.starGroup = this.physics.add.group();
-    // スターグループと地面の衝突
-    this.physics.add.collider(this.starGroup, this.groundLayer);
-    // スター作成
-    this.createStar();
-    // 3秒ごとにスターを作成
-    this.starTimer = this.timeEvent = this.time.addEvent({
-      delay: 3000,
-      callback: this.createStar,
-      loop: true,
-      callbackScope: this
+mainScene3.createBossEnemy = function() {
+    this.bossEnemy = this.physics.add.image(700, 300, 'enemy09');
+
+    // 衝突範囲のサイズ変更、中心点を基準にしない
+    this.bossEnemy.body.setSize(300, 270, false);
+    // 左上からのオフセットの距離を設定
+    this.bossEnemy.body.setOffset(90, 150);
+    this.bossEnemy.setDisplaySize(300, 300);
+    
+    this.bossEnemy.setCollideWorldBounds(true);
+    this.createEnemyParticle(this.bossEnemy);
+    
+    this.bossEnemy.dx = 4;
+    this.bossEnemy.hp = 20;
+
+    this.physics.add.collider(this.bossEnemy, this.groundLayer);
+    this.physics.add.overlap(this.bossEnemy, this.ballGroup, this.hitBall, null, this);
+    this.physics.add.overlap(this.player, this.bossEnemy, this.hitPlayerAndBossEnemy, null, this);
+    
+    this.bossJumpTimer = this.time.addEvent({
+        delay: 2000,
+        callback: this.bossEnemyJump,
+        loop: true,
+        callbackScope: this,
     });
-    // プレイヤーとスターの衝突
-    this.physics.add.overlap(this.player, this.starGroup, this.hitStar, null, this);
+    
+    
 };
 
-mainScene.createStar = function() {
-    // スターの作成
-    var starPositionX = Phaser.Math.RND.between(200, 1200);
-    var starPositionY = Phaser.Math.RND.between(70, 840);
-    // スターの作成
-    var star = this.starGroup.create(starPositionX, starPositionY, 'star');
-    // スターの衝突サイズ設定
-    star.body.setSize(65,65);
-    // スターの表示サイズ設定
-    star.setDisplaySize(70, 70);
-    // バウンス設定
-    star.setBounce(0.5);
-};
-
-mainScene.hitStar = function(player, star) {
-    // プレイヤーとスターの衝突
-    star.destroy();
-    // スコアアップ
-    this.score += 10;
-    var scoreText = 'スコア：' + this.score;
-    this.text.setText(scoreText);
-};
-
-mainScene.createEnemyGroup = function() {
-    // 敵グループ作成
-    this.enemyGroup = this.physics.add.group();
-    // 最初の敵の作成
-    this.createEnemy();
-    // 敵は地面と衝突する
-    this.physics.add.collider(this.enemyGroup, this.groundLayer);
-    // 敵はプレイヤーと衝突する
-    this.physics.add.overlap(this.enemyGroup, this.player, this.hitEnemy, null, this);
-    // 2秒ごとに、新しい敵を作成する
-    this.enemyTimer = this.timeEvent = this.time.addEvent({
-      delay: 2000,
-      callback: this.createEnemy,
-      loop: true,
-      callbackScope: this
+mainScene3.createEnemyParticle = function(enemy) {
+    // 敵の爆発パーティクル作成
+    var particles = this.add.particles('fire02');
+    enemy.emitter = particles.createEmitter({
+        speed: 200,
+        maxParticles: 60,
+        blendMode: 'ADD',
+        follow: enemy,
     });
+    // 最初はパーティクルは停止
+    enemy.emitter.stop();
 };
 
-mainScene.createEnemy = function() {
-    // 敵の作成
-    // 作成する敵の種類をランダムにする
-    var enemyType = Phaser.Math.RND.pick(this.enemyData);
-    // 敵の初期位置をランダムにする
-    var enemyPositionX = Phaser.Math.RND.between(200, 70 * 40);
-    // 敵作成
-    var enemy = this.enemyGroup.create(enemyPositionX, 70, enemyType);
-    enemy.body.setSize(350,350);
-    enemy.setDisplaySize(70, 70);
-    // 敵の移動速度をランダムに決定する
-    var speed = Phaser.Math.RND.pick(this.enemySpeed);
-    enemy.setVelocityX(speed);
+mainScene3.bossEnemyJump = function() {
+    if( this.bossEnemy.body.onFloor() ) {
+        this.bossEnemy.setVelocityY(-400);
+    }
 };
 
-mainScene.hitEnemy = function(player, enemy) {
-    // プレイヤーと敵の衝突
-    // ゲームオーバーにして、updateの動作停止
+mainScene3.hitPlayerAndBossEnemy = function(player, bossEnemy) {
     this.isGameOver = true;
-    // HP減算
-    this.hp--;
-    this.playerHpText.setText("HP:" + this.hp);
     // 物理エンジン停止
     this.physics.pause();
     // プレイヤーを赤色にする
     this.player.setTint(0xff0000);
     // プレイヤーのアニメーション停止
     this.player.anims.stop();
-    if(this.hp <= 0) {
-        // スター作成停止
-        this.starTimer.remove();
-        // 敵作成停止
-        this.enemyTimer.remove();
-        // 1秒後にゲームオーバー画面
-        this.time.addEvent({
-          delay: 1000,
-          callback: this.gameOver,
-          loop: false,
-          callbackScope: this
-        });        
-    } else {
-        this.time.addEvent({
-          delay: 2000,
-          callback: this.gameRestart,
-          loop: false,
-          callbackScope: this
-        });        
-        
-    }
+    this.bossJumpTimer.remove();
+    this.boneTimer.remove();
+    this.boneTimer2.remove();
+    // 1秒後にゲームオーバー画面
+    this.time.addEvent({
+      delay: 1000,
+      callback: this.gameOver,
+      loop: false,
+      callbackScope: this
+    });
 };
 
-mainScene.gameOver = function() {
+
+mainScene3.gameOver = function() {
     // ゲームオーバー処理
     // 現在のカメラの中心座標を取得
     var cameraPositionX = this.cameras.main.midPoint.x;
@@ -284,29 +253,29 @@ mainScene.gameOver = function() {
     gameoverImage.setDisplaySize(500,400);
     // 何かキーをクリックするとゲーム再開
     this.input.keyboard.on('keydown', function(event) {
-        this.scene.start('mainScene');
+        this.scene.start('startScene');
     }, this);
 };
 
-mainScene.gameRestart = function() {
+mainScene3.gameRestart = function() {
     this.isGameOver = false;
-    this.player.setPosition(50, 100);
+    this.player.setPosition(50, 50);
     this.physics.resume();
     this.player.clearTint();
     this.player.anims.resume();
     this.player.setFrame(7);
 };
 
-mainScene.createBallGroup = function() {
+mainScene3.createBallGroup = function() {
     // ボールグループ作成
     this.ballGroup = this.physics.add.group();
     // ボールグループと地面の衝突
     this.physics.add.collider(this.ballGroup, this.groundLayer, this.hitBallAndGround, null, this);    
     // ボールグループと敵の衝突
-    this.physics.add.overlap(this.ballGroup, this.enemyGroup, this.hitBall, null, this);
+    //this.physics.add.overlap(this.ballGroup, this.enemyGroup, this.hitBall, null, this);
 };
 
-mainScene.shoot = function() {
+mainScene3.shoot = function() {
     // プレイヤーの位置からボール発射
     var posX = this.player.x;
     var posY = this.player.y;
@@ -322,42 +291,160 @@ mainScene.shoot = function() {
         ball.setVelocityX(-600);
     }
 };
-mainScene.hitBallAndGround = function(ball, ground) {
+
+mainScene3.hitBallAndGround = function(ball, ground) {
     ball.destroy();
 };
 
-mainScene.hitBall = function(ball, enemy) {
+mainScene3.hitBall = function(bossEnemy, ball) {
     // ボールと敵の衝突
-    // 敵の削除
-    enemy.destroy();
-    // ボールの削除
     ball.destroy();
-    // スコアアップ
-    this.score += 1;
-    var scoreText = 'スコア：' + this.score;
-    this.text.setText(scoreText);
+    this.bossEnemy.hp--;
+    
+    if(this.bossEnemy.hp <= 0) {
+        this.bossJumpTimer.remove();
+        this.boneTimer.remove();
+        this.boneTimer2.remove();
+        this.bossEnemy.emitter.start();
+        this.bossEnemy.destroy();
+        // スコアアップ
+        this.score += 100;
+        var scoreText = 'スコア：' + this.score;
+        this.text.setText(scoreText);
+    }
 };
 
-mainScene.createGoalZone = function() {
-    this.goalZone = this.add.zone(70 * 50, 70 * 5, 70, 70 * 10);
+mainScene3.createGoalZone = function() {
+    this.goalZone = this.add.zone(70 * 15, 70 * 5, 70, 70 * 10);
     this.physics.add.existing(this.goalZone);
     this.goalZone.body.setAllowGravity(false);
     this.physics.add.overlap(this.player, this.goalZone, this.reachGoal, null, this);
 };
 
-mainScene.reachGoal = function() {
+mainScene3.reachGoal = function() {
+    if(this.bossEnemy.active) {
+        return;
+    }
+    
     this.isGameOver = true;
     this.physics.pause();
     this.player.anims.stop();
     
     this.cameras.main.fadeOut(1000, 0, 0, 0);
-
+    
     // フェードアウト完了後に実行する
     this.cameras.main.on('camerafadeoutcomplete', function(camera, effect) {
         // スタートシーンを起動します
-        this.scene.start("mainScene2",{
-            hp : this.hp,
-            score : this.score,
-        });
+        this.scene.start("gameClearScene");
     }, this);
+};
+
+mainScene3.createBoneGroup = function() {
+    this.boneGroup = this.physics.add.group();
+    this.physics.add.collider(this.boneGroup, this.groundLayer, this.hitBoneAndGround, null, this);
+    this.physics.add.overlap(this.player, this.boneGroup, this.hitPlayerAndBone, null, this);
+    
+    this.boneTimer = this.time.addEvent({
+        delay: 1500,
+        callback : this.createBone,
+        loop: true,
+        callbackScope: this,
+    });
+};
+
+mainScene3.createBone = function() {
+    var x = this.bossEnemy.body.center.x;
+    var y = this.bossEnemy.body.center.y;
+    
+    var bone = this.boneGroup.create(x, y, 'bone');
+    bone.body.setSize(400, 180);
+    bone.setDisplaySize(80, 80);
+    bone.body.setAllowGravity(false);
+    bone.setVelocityX(-500);
+    
+};
+
+mainScene3.hitBoneAndGround = function(bone, ground) {
+    bone.destroy();
+};
+
+mainScene3.hitPlayerAndBone = function(player, bone) {
+    bone.destroy();
+    this.hp--;
+    this.cameras.main.flash(500, 255,0,0);
+    this.playerHpText.setText("HP:" + this.hp);
+    
+    if( this.hp <= 0 ) {
+        this.isGameOver = true;
+        // 物理エンジン停止
+        this.physics.pause();
+        // プレイヤーを赤色にする
+        this.player.setTint(0xff0000);
+        // プレイヤーのアニメーション停止
+        this.player.anims.stop();
+        this.bossJumpTimer.remove();
+        this.boneTimer.remove();
+        this.boneTimer2.remove();
+        // 1秒後にゲームオーバー画面
+        this.time.addEvent({
+          delay: 1000,
+          callback: this.gameOver,
+          loop: false,
+          callbackScope: this
+        });        
+    }
+};
+mainScene3.createBoneGroup2 = function() {
+    this.boneGroup2 = this.physics.add.group();
+    this.physics.add.collider(this.boneGroup2, this.groundLayer, this.hitBoneAndGround2, null, this);
+    this.physics.add.overlap(this.player, this.boneGroup2, this.hitPlayerAndBone2, null, this);
+    
+    this.boneTimer2 = this.time.addEvent({
+        delay: 800,
+        callback : this.createBone2,
+        loop: true,
+        callbackScope: this,
+    });
+};
+
+mainScene3.createBone2 = function() {
+    var x = this.bossEnemy.body.center.x;
+    var y = this.bossEnemy.body.center.y;
+
+    var bone = this.boneGroup2.create(x, y, 'bone');
+    bone.setAngle(90);
+    bone.body.setSize(400, 180);
+    bone.setDisplaySize(80, 80);
+    bone.setVelocity(-300, -600);
+};
+
+mainScene3.hitBoneAndGround2 = function(bone, ground) {
+    bone.destroy();
+};
+
+mainScene3.hitPlayerAndBone2 = function(player, bone) {
+    bone.destroy();
+    this.hp--;
+    this.cameras.main.flash(500, 255,0,0);
+    this.playerHpText.setText("HP:" + this.hp);
+    
+    if( this.hp <= 0 ) {
+        this.isGameOver = true;
+        // 物理エンジン停止
+        this.physics.pause();
+        // プレイヤーを赤色にする
+        this.player.setTint(0xff0000);
+        // プレイヤーのアニメーション停止
+        this.player.anims.stop();
+        this.bossJumpTimer.remove();
+        this.boneTimer.remove();
+        this.boneTimer2.remove();
+        // 1秒後にゲームオーバー画面
+        this.time.addEvent({
+          delay: 1000,
+          callback: this.gameOver,
+          loop: false,
+          callbackScope: this
+        });        
+    }
 };
